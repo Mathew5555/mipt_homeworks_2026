@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 UNKNOWN_COMMAND_MSG = "Неизвестная команда!"
 NONPOSITIVE_VALUE_MSG = "Значение должно быть больше нуля!"
 INCORRECT_DATE_MSG = "Неправильная дата!"
@@ -12,6 +14,7 @@ def is_leap_year(year: int) -> bool:
     :return: Значение високосности.
     :rtype: bool
     """
+    return True
 
 
 def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
@@ -24,7 +27,7 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     """
 
 
-def main():
+def main() -> None:
     """Ваш код здесь"""
 
 
