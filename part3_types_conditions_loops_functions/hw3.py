@@ -91,12 +91,13 @@ def extract_date(line: str) -> DateTuple | None:
 
 
 def parse_amount(line: str) -> float | None:
-    line_split = line.replace(",", ".").split()
+    line_dot = line.replace(",", ".")
+    line_split = line_dot.split(".")
     if len(line_split) > TWO:
         return None
-    if not all(el.isdigit() for el in line_split):
+    if not all(el.lstrip("-").isdigit() for el in line_split):
         return None
-    return float(line)
+    return float(line_dot)
 
 
 def valid_category(category: str) -> bool:
