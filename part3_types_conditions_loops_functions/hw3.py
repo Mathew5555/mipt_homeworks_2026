@@ -1,4 +1,3 @@
-import sys
 from typing import Any
 
 UNKNOWN_COMMAND_MSG = "Unknown command!"
@@ -7,13 +6,11 @@ INCORRECT_DATE_MSG = "Invalid date!"
 NOT_EXISTS_CATEGORY = "Category not exists!"
 OP_SUCCESS_MSG = "Added"
 
-ONE = 1
-TWO = 2
-THREE = 3
-TWELVE = 12
+MAX_MONTH = 12
 FEBRUARY = 2
 LEAP_FEBRUARY_DAYS = 29
 ZERO = float(0)
+MAX_DATE_AND_CATEGORY_COUNT = 3
 
 AMOUNT_KEY = "amount"
 DATE_KEY = "date"
@@ -71,14 +68,14 @@ def valid_date_values(date: DateTuple) -> bool:
     day, month, year = date
     if year < 0:
         return False
-    if not (ONE <= month <= TWELVE):
+    if not (1 <= month <= MAX_MONTH):
         return False
-    return ONE <= day <= get_days_in_month(month, year)
+    return 1 <= day <= get_days_in_month(month, year)
 
 
 def extract_date(line: str) -> DateTuple | None:
     parts = line.split("-")
-    if len(parts) != THREE:
+    if len(parts) != MAX_DATE_AND_CATEGORY_COUNT:
         return None
     if not all(part.isdigit() for part in parts):
         return None
@@ -93,7 +90,8 @@ def extract_date(line: str) -> DateTuple | None:
 def parse_amount(line: str) -> float | None:
     line_dot = line.replace(",", ".")
     line_split = line_dot.split(".")
-    if len(line_split) > TWO:
+    max_dot_count = 2
+    if len(line_split) > max_dot_count:
         return None
     if not all(el.lstrip("-").isdigit() for el in line_split):
         return None
@@ -167,7 +165,7 @@ def collect_stats(date: DateTuple) -> StatsTuple:
 
 def beautiful_lines(category_totals: dict[str, float]) -> list[str]:
     lines: list[str] = []
-    for index, category in enumerate(sorted(category_totals), ONE):
+    for index, category in enumerate(sorted(category_totals), 1):
         value = f"{category_totals[category]:.2f}"
         lines.append(f"{index}. {category}: {value}")
     return lines
@@ -240,7 +238,8 @@ def stats_handler(line_date: str) -> str:
 
 
 def process_income(args: list[str]) -> str:
-    if len(args) != TWO:
+    expected_args = 2
+    if len(args) != expected_args:
         return UNKNOWN_COMMAND_MSG
 
     amount = parse_amount(args[0])
@@ -251,9 +250,9 @@ def process_income(args: list[str]) -> str:
 
 
 def process_cost(args: list[str]) -> str:
-    if len(args) == ONE and args[0] == "categories":
+    if len(args) == 1 and args[0] == "categories":
         return cost_categories_handler()
-    if len(args) != THREE:
+    if len(args) != MAX_DATE_AND_CATEGORY_COUNT:
         return UNKNOWN_COMMAND_MSG
 
     if not valid_category(args[0]):
@@ -277,14 +276,15 @@ def start_command(command: str) -> str:
         return process_income(args)
     if action == "cost":
         return process_cost(args)
-    if action == "stats" and len(args) == ONE:
+    if action == "stats" and len(args) == 1:
         return stats_handler(args[0])
     return UNKNOWN_COMMAND_MSG
 
 
 def main() -> None:
-    for line in sys.stdin:
-        command = line.strip()
+    loop = True
+    while loop:
+        command = input().strip()
         if command:
             print(start_command(command))
 
