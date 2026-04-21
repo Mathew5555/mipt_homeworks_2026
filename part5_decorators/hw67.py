@@ -1,4 +1,6 @@
 import json
+from datetime import UTC, datetime, timedelta
+from functools import wraps
 from typing import Any, ParamSpec, Protocol, TypeVar
 from urllib.request import urlopen
 
@@ -20,19 +22,59 @@ class CallableWithMeta(Protocol[P, R_co]):
 
 
 class BreakerError(Exception):
-    pass
+    def __init__(self, message: str, func_name: str, block_time: datetime):
+        super().__init__(message)
+        self.func_name = func_name
+        self.block_time = block_time
 
 
 class CircuitBreaker:
     def __init__(
         self,
-        critical_count: int,
-        time_to_recover: int,
-        triggers_on: type[Exception],
-    ): ...
+        critical_count: int = 5,
+        time_to_recover: int = 30,
+        triggers_on: type[Exception] = Exception,
+    ):
+        errors = []
+        if not isinstance(critical_count, int) or critical_count <= 0:
+            errors.append(ValueError(INVALID_CRITICAL_COUNT))
+        if not isinstance(time_to_recover, int) or time_to_recover <= 0:
+            errors.append(ValueError(INVALID_RECOVERY_TIME))
+
+        if len(errors) > 0:
+            raise ExceptionGroup(VALIDATIONS_FAILED, errors)
+
+        self.critical_count = critical_count
+        self.time_to_recover = time_to_recover
+        self.triggers_on = triggers_on
+        self._failures: int = 0
+        self._block_time: datetime | None = None
 
     def __call__(self, func: CallableWithMeta[P, R_co]) -> CallableWithMeta[P, R_co]:
-        raise NotImplementedError
+        func_key = f"{func.__module__}.{func.__name__}"
+
+        @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R_co:
+            self.time_check(func_key)
+            try:
+                result = func(*args, **kwargs)
+            except self.triggers_on as e:
+                self._failures += 1
+                if self._failures >= self.critical_count:
+                    self._block_time = datetime.now(UTC)
+                    raise BreakerError(TOO_MUCH, func_key, self._block_time) from e
+                raise
+            self._failures = 0
+            return result
+
+        return wrapper
+
+    def time_check(self, func_name: str) -> None:
+        if self._block_time is not None:
+            if datetime.now(UTC) - self._block_time < timedelta(seconds=self.time_to_recover):
+                raise BreakerError(TOO_MUCH, func_name, self._block_time)
+            self._block_time = None
+            self._failures = 0
 
 
 circuit_breaker = CircuitBreaker(5, 30, Exception)
