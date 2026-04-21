@@ -22,11 +22,10 @@ class CallableWithMeta(Protocol[P, R_co]):
 
 
 class BreakerError(Exception):
-    def __init__(self, message: str, func_name: str, block_time: datetime, source: Exception | None = None):
+    def __init__(self, message: str, func_name: str, block_time: datetime):
         super().__init__(message)
         self.func_name = func_name
         self.block_time = block_time
-        self.source = source
 
 
 class CircuitBreaker:
@@ -50,20 +49,20 @@ class CircuitBreaker:
         self.triggers_on = triggers_on
         self._failures: int = 0
         self._block_time: datetime | None = None
-        self._func_key: str | None = None
 
     def __call__(self, func: CallableWithMeta[P, R_co]) -> CallableWithMeta[P, R_co]:
+        func_key = f"{func.__module__}.{func.__name__}"
+
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R_co:
-            self._func_key = f"{func.__module__}.{func.__name__}"
-            self.time_check(self._func_key)
+            self.time_check(func_key)
             try:
                 result = func(*args, **kwargs)
             except self.triggers_on as e:
                 self._failures += 1
                 if self._failures >= self.critical_count:
                     self._block_time = datetime.now(UTC)
-                    raise BreakerError(TOO_MUCH, self._func_key, self._block_time, source=e) from e
+                    raise BreakerError(TOO_MUCH, func_key, self._block_time) from e
                 raise
             self._failures = 0
             return result
