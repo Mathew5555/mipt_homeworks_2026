@@ -61,11 +61,12 @@ python main.py
 
 ```text
 /file_chunk
-/filechunk
 /file_chunk paragraph=3
 /file_chunk len=150
 /file_chunk paragraph=3 -y
 ```
+
+Ответы модели выводятся в streaming-режиме: текст появляется частями сразу во время генерации.
 
 ## Структура проекта
 

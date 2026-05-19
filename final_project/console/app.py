@@ -12,15 +12,20 @@ def clear_screen() -> None:
     os.system('cls' if os.name == 'nt' else 'clear')
 
 
-def ask_model(client: LLMClient, messages: list[dict[str, str]]) -> str | None:
+def ask_model_stream(client: LLMClient, messages: list[dict[str, str]]) -> str | None:
+    answer_parts = []
     try:
-        return client.ask(messages)
+        for chunk in client.ask_stream(messages):
+            print(chunk, end='', flush=True)
+            answer_parts.append(chunk)
+        print()
     except KeyboardInterrupt:
         print('\nЗапрос прерван.')
         return None
     except RuntimeError as error:
         print(f'Ошибка: {error}')
         return None
+    return ''.join(answer_parts)
 
 
 def main_loop(config: Config) -> None:
@@ -46,11 +51,10 @@ def main_loop(config: Config) -> None:
             continue
 
         history.add_user_message(prepared_text)
-        answer = ask_model(client, history.to_api_messages())
+        answer = ask_model_stream(client, history.to_api_messages())
         if answer is None:
             continue
         history.add_assistant_message(answer)
-        print(answer)
 
 
 def main() -> None:

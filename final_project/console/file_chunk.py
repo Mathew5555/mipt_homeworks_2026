@@ -30,15 +30,20 @@ def parse_chunk_command(command: str) -> tuple[str, int, bool]:
     return mode, size, auto_mode
 
 
-def ask_chunk(client: LLMClient, messages: list[dict[str, str]]) -> str | None:
+def ask_chunk_stream(client: LLMClient, messages: list[dict[str, str]]) -> str | None:
+    answer_parts = []
     try:
-        return client.ask(messages)
+        for chunk in client.ask_stream(messages):
+            print(chunk, end='', flush=True)
+            answer_parts.append(chunk)
+        print()
     except KeyboardInterrupt:
         print('\nЗапрос прерван.')
         return None
     except RuntimeError as error:
         print(f'Ошибка: {error}')
         return None
+    return ''.join(answer_parts)
 
 
 def file_chunk_mode(command: str, config: Config, client: LLMClient) -> None:
@@ -60,9 +65,7 @@ def file_chunk_mode(command: str, config: Config, client: LLMClient) -> None:
     print('Принято. Начинаю обработку:')
 
     for chunk in chunks:
-        answer = ask_chunk(client, make_chunk_messages(config, prompt, chunk))
-        if answer is not None:
-            print(answer)
+        ask_chunk_stream(client, make_chunk_messages(config, prompt, chunk))
         if not auto_mode:
             next_step = input()
             if next_step == '\\q':
