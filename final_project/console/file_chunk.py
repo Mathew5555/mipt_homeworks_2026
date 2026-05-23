@@ -55,7 +55,7 @@ def file_chunk_mode(command: str, config: Config, client: LLMClient) -> None:
 
     file_path = input('Введите путь до файла\n> ')
     try:
-        text = read_text_file(file_path, check_size=False)
+        text = read_text_file(file_path, check_size=True)
     except ValueError as error:
         print(f'Ошибка: {error}')
         return
